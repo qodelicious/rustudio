@@ -4,6 +4,7 @@ mod account_ui;
 mod ribbon_quick;
 mod cmeta;
 mod studio_content;
+mod platform;
 mod dtmeta;
 mod cloud_ui;
 mod join_ui;
@@ -139,6 +140,10 @@ usage: rustudio [FILE] [--demo] [--play] [--screenshot OUT.png] [--self-test OUT
 /// RUSTUDIO_VISIBLE_TESTS=1 keeps them on screen.
 fn rerun_headless() -> Option<i32> {
     use std::os::unix::fs::OpenOptionsExt;
+    // gamescope is Linux's: elsewhere test runs use a normal window.
+    if !cfg!(target_os = "linux") {
+        return None;
+    }
     let argv: Vec<String> = std::env::args().collect();
     let testing = argv
         .iter()

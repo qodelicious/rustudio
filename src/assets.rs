@@ -60,26 +60,26 @@ pub fn content_dir() -> PathBuf {
             return PathBuf::from(p);
         }
     }
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-    let link = PathBuf::from(home).join(".local/share/rustudio/content");
+    let link = crate::platform::rustudio_dir(crate::platform::Dir::Data).join("content");
     if !link.exists() {
-        // No link to a Studio install: the copy rustudio downloaded.
-        if let Some(d) = crate::studio_content::installed() {
+        // No link to a Studio install: Studio installed on this machine
+        // (macOS), else the copy rustudio downloaded.
+        if let Some(d) = crate::platform::installed_studio().or_else(crate::studio_content::installed) {
             return d.join("content");
         }
     }
     link
 }
 
-/// The asset cache folder: RUSTUDIO_CACHE_DIR, else ~/.cache/rustudio.
+/// The asset cache folder: RUSTUDIO_CACHE_DIR, else ~/.cache/rustudio
+/// (macOS: ~/Library/Caches/rustudio).
 pub fn cache_dir() -> PathBuf {
     if let Ok(p) = std::env::var("RUSTUDIO_CACHE_DIR") {
         if !p.is_empty() {
             return PathBuf::from(p);
         }
     }
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-    PathBuf::from(home).join(".cache/rustudio")
+    crate::platform::rustudio_dir(crate::platform::Dir::Cache)
 }
 
 /// A local asset store: `<id>` or `<id>.<ext>` files, e.g. the one the
@@ -88,8 +88,7 @@ pub fn local_assets_dir() -> Option<PathBuf> {
     if let Ok(p) = std::env::var("RUSTUDIO_LOCAL_ASSETS") {
         return (!p.is_empty()).then(|| PathBuf::from(p));
     }
-    let home = std::env::var("HOME").ok()?;
-    let p = PathBuf::from(home).join(".local/share/rustudio/assets");
+    let p = crate::platform::rustudio_dir(crate::platform::Dir::Data).join("assets");
     p.is_dir().then_some(p)
 }
 
@@ -135,13 +134,13 @@ pub fn local_asset_path(id: u64) -> Option<PathBuf> {
 /// a collaborator's session (a live Team Create join), so the place's own
 /// InsertService:LoadAsset packs can only come from disk.
 fn ledger_path(id: u64) -> Option<PathBuf> {
-    let home = PathBuf::from(std::env::var("HOME").unwrap_or_default());
+    let data = crate::platform::home_dir_of(crate::platform::Dir::Data);
     let ledger = std::env::var("RUSTUDIO_ASSET_LEDGER")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| home.join(".local/share/rbxasset/ledger.json"));
+        .unwrap_or_else(|_| data.join("rbxasset/ledger.json"));
     let sources = std::env::var("RUSTUDIO_ASSET_SOURCES")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| home.join(".local/share/rustudio/asset-sources.json"));
+        .unwrap_or_else(|_| data.join("rustudio/asset-sources.json"));
     static LEDGER: Mutex<Option<(std::time::SystemTime, HashMap<u64, PathBuf>)>> = Mutex::new(None);
     static SOURCES: Mutex<Option<(std::time::SystemTime, HashMap<u64, PathBuf>)>> = Mutex::new(None);
     path_map(&LEDGER, &ledger, id)

@@ -1000,10 +1000,7 @@ impl Editor {
         s.memstats_at = s.time;
         s.memstats_frames = 0;
         s.memstats_worst = 0.0;
-        let rss = std::fs::read_to_string("/proc/self/status")
-            .ok()
-            .and_then(|t| t.lines().find(|l| l.starts_with("VmRSS:")).map(|l| l.split_whitespace().nth(1).unwrap_or("0").to_string()))
-            .unwrap_or_default();
+        let rss = crate::platform::resident_bytes().map(|b| (b / 1024).to_string()).unwrap_or_default();
         let time = s.time;
         let (rs2c, rc2s) = (s.map.s2c.len(), s.map.c2s.len());
         eprintln!(
@@ -3273,7 +3270,8 @@ impl Editor {
 }
 
 /// Gamepads plugged in: the kernel's joystick devices
-/// (/dev/input/by-id/*-event-joystick), sorted so slots stay stable.
+/// (/dev/input/by-id/*-event-joystick), sorted so slots stay stable. Linux
+/// only for now (none elsewhere; docs/ENGINE-GAPS.md).
 fn gamepad_devices() -> Vec<String> {
     let mut v: Vec<String> = std::fs::read_dir("/dev/input/by-id")
         .map(|rd| {

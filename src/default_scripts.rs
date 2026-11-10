@@ -38,14 +38,18 @@ pub fn studio_dir() -> Option<PathBuf> {
         let p = PathBuf::from(p);
         return has(&p).then_some(p);
     }
-    let home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()));
+    let data = crate::platform::rustudio_dir(crate::platform::Dir::Data);
     // The person's content link usually points at Studio's own content/.
-    if let Ok(target) = std::fs::canonicalize(home.join(".local/share/rustudio/content")) {
+    if let Ok(target) = std::fs::canonicalize(data.join("content")) {
         if let Some(root) = target.parent() {
             if has(root) {
                 return Some(root.to_path_buf());
             }
         }
+    }
+    // Roblox Studio installed on this machine (macOS's RobloxStudio.app).
+    if let Some(d) = crate::platform::installed_studio() {
+        return Some(d);
     }
     // Studio's content downloaded by rustudio itself (studio_content.rs).
     if let Some(d) = crate::studio_content::installed() {
@@ -53,7 +57,7 @@ pub fn studio_dir() -> Option<PathBuf> {
             return Some(d);
         }
     }
-    let fallback = home.join(".local/share/rustudio/studio");
+    let fallback = data.join("studio");
     has(&fallback).then_some(fallback)
 }
 

@@ -65,6 +65,7 @@ impl Watchdog {
     }
 }
 /// Linux exposes wait channels without ptrace, even when attaching is restricted.
+/// (Other systems have no such files: the stall line alone is printed.)
 fn dump_waits() {
     let Ok(tasks) = std::fs::read_dir("/proc/self/task") else {
         return;

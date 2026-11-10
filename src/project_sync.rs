@@ -561,8 +561,8 @@ mod tests {
         .unwrap();
         std::fs::write(dir.join("src/Server/A.server.luau"), "print(1)\n").unwrap();
         std::fs::write(dir.join("src/Server/Sub/B.luau"), "return 1\n").unwrap();
-        // The trash for this test stays in /tmp.
-        std::env::set_var("XDG_DATA_HOME", dir.join("xdg"));
+        // The trash for this test stays in /tmp (never the person's Trash).
+        std::env::set_var("RUSTUDIO_TRASH_DIR", dir.join("xdg/Trash"));
         let (mut doc, mut st) = open(&dir.join("default.project.json")).unwrap();
         let root = doc.dom.root_ref();
         let server = named(&doc, named(&doc, root, "ServerScriptService").unwrap(), "Server").unwrap();

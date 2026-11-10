@@ -157,8 +157,8 @@ impl ProjectState {
         }
     }
 
-    /// Moves a file or folder to the desktop trash (XDG spec), never deleting
-    /// it outright.
+    /// Moves a file or folder to the desktop trash (macOS: Finder's Trash;
+    /// elsewhere the XDG spec's), never deleting it outright.
     fn to_trash(&mut self, path: &Path) {
         if !path.exists() || !self.writable(path) {
             return;
@@ -175,11 +175,21 @@ impl ProjectState {
             }
             return;
         }
-        let home = std::env::var_os("HOME").map(PathBuf::from).unwrap_or_default();
-        let base = std::env::var_os("XDG_DATA_HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| home.join(".local/share"))
-            .join("Trash");
+        // RUSTUDIO_TRASH_DIR: an XDG-layout trash folder used on every
+        // system instead of the desktop's (tests).
+        let own = std::env::var_os("RUSTUDIO_TRASH_DIR").filter(|d| !d.is_empty()).map(PathBuf::from);
+        if let Some(r) = own.is_none().then(|| crate::platform::native_trash(path)).flatten() {
+            match r {
+                Ok(()) => {
+                    self.log.push(format!("moved to trash: {}", path.display()));
+                    let p = path.to_path_buf();
+                    self.disk.retain(|k, _| !k.starts_with(&p));
+                }
+                Err(e) => self.warnings.push(format!("couldn't move {} to the trash: {e}", path.display())),
+            }
+            return;
+        }
+        let base = own.unwrap_or_else(|| crate::platform::xdg_dir(crate::platform::Dir::Data).join("Trash"));
         let (files, info) = (base.join("files"), base.join("info"));
         let _ = std::fs::create_dir_all(&files);
         let _ = std::fs::create_dir_all(&info);

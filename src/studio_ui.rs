@@ -115,9 +115,7 @@ impl Default for UiState {
 }
 
 fn recent_file() -> PathBuf {
-    let base = std::env::var_os("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".config"));
+    let base = crate::platform::xdg_dir(crate::platform::Dir::Config);
     base.join("rustudio").join("recent.txt")
 }
 

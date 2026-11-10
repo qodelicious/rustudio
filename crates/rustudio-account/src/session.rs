@@ -2,15 +2,18 @@
 //! (docs/AUTH.md). Signed in means `users.roblox.com/v1/users/authenticated`
 //! accepted it; anything else is "signed out".
 //!
-//! Where the cookie comes from: the login keyring (`secret-tool`, service
-//! `rustudio`, key `roblox-cookie`), else `~/.config/rustudio/roblox-cookie`
+//! Where the cookie comes from: the login keyring (Linux: `secret-tool`,
+//! service `rustudio`, key `roblox-cookie`; macOS: the login Keychain, service
+//! `rustudio`, account `roblox-cookie`), else `~/.config/rustudio/roblox-cookie`
+//! (macOS: `~/Library/Application Support/rustudio/roblox-cookie`)
 //! (mode 600, one line, written by hand), which is then imported into the
 //! keyring. The value lives only in memory and in those two places: it is
 //! never formatted into a message, log line, error or file. [`Cookie`]'s
 //! Debug and Display print `<redacted>`.
 
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::PathBuf;
+#[cfg(not(target_os = "macos"))]
 use std::process::{Command, Stdio};
 use std::sync::Mutex;
 
@@ -115,6 +118,7 @@ fn keyring_disabled() -> bool {
     std::env::var_os("RUSTUDIO_NO_KEYRING").is_some()
 }
 
+#[cfg(not(target_os = "macos"))]
 fn secret_lookup(attrs: &[&str]) -> Option<Cookie> {
     if keyring_disabled() {
         return None;
@@ -133,6 +137,7 @@ fn secret_lookup(attrs: &[&str]) -> Option<Cookie> {
 }
 
 /// Stores a value in the keyring (passed on stdin, never argv).
+#[cfg(not(target_os = "macos"))]
 fn secret_store(label: &str, attrs: &[&str], c: &Cookie) -> Result<()> {
     if keyring_disabled() {
         return Err(Error::new("keyring disabled (RUSTUDIO_NO_KEYRING)"));
@@ -147,6 +152,7 @@ fn secret_store(label: &str, attrs: &[&str], c: &Cookie) -> Result<()> {
         .spawn()
         .map_err(|e| Error(format!("secret-tool not available: {e}")))?;
     if let Some(mut stdin) = child.stdin.take() {
+        use std::io::Write;
         stdin.write_all(c.0.as_bytes())?;
     }
     let st = child.wait()?;
@@ -157,6 +163,7 @@ fn secret_store(label: &str, attrs: &[&str], c: &Cookie) -> Result<()> {
     }
 }
 
+#[cfg(not(target_os = "macos"))]
 fn secret_clear(attrs: &[&str]) {
     if keyring_disabled() {
         return;
@@ -168,6 +175,52 @@ fn secret_clear(attrs: &[&str]) {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status();
+}
+
+/// macOS: the login Keychain (generic passwords, service `rustudio`), one
+/// item per slot: account `roblox-cookie`, or `roblox-account/<user id>`.
+#[cfg(target_os = "macos")]
+fn keychain_entry(attrs: &[&str]) -> Option<keyring::Entry> {
+    let mut service = KEYRING_SERVICE;
+    let mut parts = Vec::new();
+    for kv in attrs.chunks(2) {
+        match kv {
+            ["service", v] => service = v,
+            ["key", v] | ["user", v] => parts.push(*v),
+            _ => {}
+        }
+    }
+    keyring::Entry::new(service, &parts.join("/")).ok()
+}
+
+#[cfg(target_os = "macos")]
+fn secret_lookup(attrs: &[&str]) -> Option<Cookie> {
+    if keyring_disabled() {
+        return None;
+    }
+    Cookie::new(&keychain_entry(attrs)?.get_password().ok()?)
+}
+
+#[cfg(target_os = "macos")]
+fn secret_store(label: &str, attrs: &[&str], c: &Cookie) -> Result<()> {
+    let _ = label;
+    if keyring_disabled() {
+        return Err(Error::new("keyring disabled (RUSTUDIO_NO_KEYRING)"));
+    }
+    keychain_entry(attrs)
+        .ok_or_else(|| Error::new("the Keychain is unavailable"))?
+        .set_password(&c.0)
+        .map_err(|_| Error::new("the Keychain refused to store the session"))
+}
+
+#[cfg(target_os = "macos")]
+fn secret_clear(attrs: &[&str]) {
+    if keyring_disabled() {
+        return;
+    }
+    if let Some(e) = keychain_entry(attrs) {
+        let _ = e.delete_credential();
+    }
 }
 
 /// The keyring copy, through `secret-tool lookup service rustudio key roblox-cookie`.
