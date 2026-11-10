@@ -30,17 +30,21 @@ sections were dead).
 
 ## Where the cookie lives
 
-- Import source: `~/.config/rustudio/roblox-cookie`, mode `600`, one line
+- Import source: `~/.config/rustudio/roblox-cookie` (macOS:
+  `~/Library/Application Support/rustudio/roblox-cookie`), mode `600`, one line
   (with or without the `.ROBLOSECURITY=` prefix). Set by hand; never written
   by the app. A file readable by others is refused.
 - Runtime copy: the login keyring — `secret-tool` with service `rustudio`,
   key `roblox-cookie` (stored with the value on stdin, never on a command
-  line). The app reads the keyring first and imports from the file when the
+  line); on macOS the login Keychain, a generic password with service
+  `rustudio` and account `roblox-cookie` (Keychain Access shows it). An
+  unsigned build may ask once per new build to let rustudio read it. The app reads the keyring first and imports from the file when the
   keyring has none (once per file value: `roblox-cookie.imported` holds the
   one-way key of the value already imported). **Sign out** removes the
   keyring copy and stops the file from being imported again until **Try
   again**.
-- Saved accounts (switching): `service rustudio key roblox-account user <id>`,
+- Saved accounts (switching): `service rustudio key roblox-account user <id>`
+  (macOS Keychain account `roblox-account/<id>`),
   one per account that signed in; switching copies one into the active slot
   after Roblox accepts it. `account.toml` keeps only id, name, display name.
 - Never: the project folder, `account.toml`, any log, any screenshot, any
@@ -123,7 +127,7 @@ path is proven.
 
 | Where | What |
 |---|---|
-| `crates/rustudio-account/src/session.rs` | `Cookie` (redacted), keyring via `secret-tool`, the import file, `Session` (validate, GET, `post_csrf`, avatar, owned universes, asset download, place upload), `ProfileCache` |
+| `crates/rustudio-account/src/session.rs` | `Cookie` (redacted), keyring via `secret-tool` (macOS: the Keychain), the import file, `Session` (validate, GET, `post_csrf`, avatar, owned universes, asset download, place upload), `ProfileCache` |
 | `crates/rustudio-account/src/api.rs` | `Client::open` (cookie → validated session → cache), experiences, downloads, publishing; `public_asset` stays anonymous |
 | `crates/rustudio-account/src/config.rs` | bookmarks and the signed-out flag only |
 | `crates/rustudio-account/src/store.rs` | the publishing key only |

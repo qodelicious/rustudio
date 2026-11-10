@@ -1581,6 +1581,11 @@ impl eframe::App for RustudioApp {
         let ctx = ui.ctx().clone();
         self.watchdog.begin(ctx.input(|i| !i.viewport().minimized.unwrap_or(false)) && (self.ed.play.is_some() || self.ed.harness.screenshot.is_some()));
         let ed = &mut self.ed;
+        // Files opened from Finder (double-click, Open With, the Dock icon).
+        #[cfg(target_os = "macos")]
+        for p in crate::macos::take_opened() {
+            ed.request(PendingAction::Open(Some(p)));
+        }
         ed.frame_no += 1;
         let frame_start = Instant::now();
         let now = Instant::now();

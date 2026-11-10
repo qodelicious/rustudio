@@ -505,7 +505,7 @@ impl Editor {
             .show(ctx, |ui| {
                 crate::icons::logo(ui, 32.0);
                 ui.label(RichText::new(format!("rustudio {}", env!("CARGO_PKG_VERSION"))).strong());
-                ui.label("A native Linux editor for Roblox places. Not made by Roblox.");
+                ui.label("A native Linux and macOS editor for Roblox places. Not made by Roblox.");
                 ui.label("Icons: Tabler Icons (MIT). See CREDITS.md.");
             });
         self.ui.about = open;

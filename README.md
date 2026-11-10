@@ -4,7 +4,7 @@
 
 <h1 align="center">rustudio</h1>
 
-**A native Linux Roblox Studio, written in Rust.** Open, edit and save
+**A native Linux and macOS Roblox Studio, written in Rust.** Open, edit and save
 Roblox places, press Play and run them with real Luau, physics, characters
 and GUIs, without Wine.
 
@@ -36,7 +36,8 @@ quite yet.
 
 ## Install
 
-You need a Rust toolchain (1.85+) and a GPU with Vulkan (or OpenGL).
+You need a Rust toolchain (1.85+) and a GPU with Vulkan (or OpenGL) on
+Linux, or any Mac on macOS 11 or later (Metal).
 
 ```sh
 git clone https://github.com/rippelz/rustudio
@@ -48,7 +49,9 @@ cargo build --release
 
 On first launch rustudio downloads Roblox Studio's built-in content
 (default characters, camera and control scripts, fonts, textures, sounds;
-about 60 MB) from Roblox's own CDN into `~/.local/share/rustudio/studio`.
+about 60 MB) from Roblox's own CDN into `~/.local/share/rustudio/studio`
+(macOS: `~/Library/Application Support/rustudio/studio`; a Mac with Roblox
+Studio installed uses that instead and downloads nothing).
 To get it ahead of time, or update it, run
 `rustudio --install-studio-content`.
 
@@ -59,13 +62,26 @@ If you already have Studio installed (e.g. via
 export RUSTUDIO_STUDIO_DIR=~/.var/app/org.vinegarhq.Vinegar/data/vinegar/versions/version-XXXX
 ```
 
+### macOS
+
+Download `rustudio-…-macos-universal.zip` from
+[Releases](https://github.com/rippelz/rustudio/releases) (Apple Silicon and
+Intel), unzip it and move `rustudio.app` to Applications. The app isn't
+notarized by Apple, so the first time right-click it and choose **Open**
+(or allow it under System Settings > Privacy & Security). After that it opens
+normally, and `.rbxl` / `.rbxm` files can be opened with it from Finder.
+
+To build the app yourself: `tools/macos/bundle.sh` (or `--universal`). Video
+playback needs `brew install libvpx opus`. More in
+[docs/DEVELOPING.md](docs/DEVELOPING.md#macos).
+
 ## Platforms
 
 | Platform | Status |
 |---|---|
-| Linux x86_64 (Wayland or X11) | Supported, and the only one tested |
+| Linux x86_64 (Wayland or X11) | Supported |
 | Linux ARM64 | Should build; untested |
-| macOS | Not supported yet (untested, likely needs small fixes) |
+| macOS 11+ (Apple Silicon and Intel) | Supported (beta); tested on Apple Silicon |
 | Windows | Not supported yet (doesn't compile: uses Unix-only APIs) |
 
 ## Signing in
@@ -73,7 +89,8 @@ export RUSTUDIO_STUDIO_DIR=~/.var/app/org.vinegarhq.Vinegar/data/vinegar/version
 Everything above works signed out. To open your own places or load private
 assets, sign in with your Roblox session: use the account button at the top
 right, or put the `.ROBLOSECURITY` cookie in `~/.config/rustudio/roblox-cookie`
-(`chmod 600`). rustudio stores it in your login keyring. Details are in
+(macOS: `~/Library/Application Support/rustudio/roblox-cookie`; `chmod 600`).
+rustudio stores it in your login keyring (macOS: the Keychain). Details are in
 [docs/AUTH.md](docs/AUTH.md).
 
 ## Docs

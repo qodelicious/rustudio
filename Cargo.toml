@@ -9,7 +9,7 @@ version = "0.1.0"
 
 [package]
 name = "rustudio"
-description = "A native Linux game editor for Roblox place and model files"
+description = "A native Linux and macOS game editor for Roblox place and model files"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -66,11 +66,11 @@ inherits = "release"
 debug = "line-tables-only"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-# The Finder trash (platform.rs), the menu bar's app menu (macos_menu.rs).
+# The Finder trash (platform.rs), the app menu and Finder's Open (macos.rs).
 objc2 = "0.6"
 # (only for EventLoopBuilderExtMacOS: eframe's own winit)
 winit = { version = "0.30", default-features = false }
-objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSFileManager", "NSURL", "NSString", "NSError"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSFileManager", "NSURL", "NSString", "NSError", "NSAppleEventDescriptor", "NSAppleEventManager", "NSNotification", "NSObject"] }
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSApplication", "NSResponder", "NSMenu", "NSMenuItem", "NSEvent"] }
 
 [dev-dependencies]

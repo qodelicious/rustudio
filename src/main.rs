@@ -1,4 +1,4 @@
-//! rustudio: a native Linux editor for Roblox place and model files.
+//! rustudio: a native Linux and macOS editor for Roblox place and model files.
 
 mod account_ui;
 mod ribbon_quick;
@@ -6,7 +6,7 @@ mod cmeta;
 mod studio_content;
 mod platform;
 #[cfg(target_os = "macos")]
-mod macos_menu;
+mod macos;
 mod dtmeta;
 mod cloud_ui;
 mod join_ui;
@@ -788,7 +788,7 @@ fn main() -> eframe::Result<()> {
             },
             ..Default::default()
         },
-        // macOS: rustudio sets the app menu itself (macos_menu.rs).
+        // macOS: rustudio sets the app menu itself (macos.rs).
         #[cfg(target_os = "macos")]
         event_loop_builder: Some(Box::new(|b| {
             use winit::platform::macos::EventLoopBuilderExtMacOS;
@@ -796,12 +796,18 @@ fn main() -> eframe::Result<()> {
         })),
         ..Default::default()
     };
+    // Files opened from Finder arrive as Apple Events, not argv.
+    #[cfg(target_os = "macos")]
+    macos::install_open_handler();
     eframe::run_native(
         "rustudio",
         options,
         Box::new(move |cc| {
             #[cfg(target_os = "macos")]
-            macos_menu::install();
+            {
+                macos::install_menu();
+                macos::set_wake(&cc.egui_ctx);
+            }
             Ok(Box::new(app::RustudioApp::new(cc, open, harness, demo)))
         }),
     )

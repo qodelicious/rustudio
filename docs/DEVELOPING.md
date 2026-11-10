@@ -43,11 +43,37 @@ hitches.
 
 `--screenshot`, `--self-test` and `--bench` run inside a headless gamescope,
 so they never open a window on your screen (`RUSTUDIO_VISIBLE_TESTS=1` shows
-them). gamescope's own lines (and its Xwayland's and Vulkan WSI layer's) stay
+them). On macOS there is no gamescope: they run in a normal window (keep it
+in front: macOS slows down hidden windows). gamescope's own lines (and its Xwayland's and Vulkan WSI layer's) stay
 out of the console: rustudio's stdout / stderr come through, gamescope's are
 shown only when the run fails. The self-test's last step opens your place
 (`RUSTUDIO_PERF_PLACE`, default the Place A build, else og.rbxl, in `src/mech.rs`) read-only,
 plays it for 5 s and records the average and 1%-low frame times.
+
+## macOS
+
+Builds with the same `cargo build --release`; the GPU path is Metal.
+Differences from Linux, all in `src/platform.rs` and `src/macos.rs`:
+
+- Per-user files: `~/Library/Application Support/rustudio` (config, Studio
+  content, layout, recent files, script drafts) and `~/Library/Caches/rustudio`
+  (assets, crash reports) instead of `~/.config`, `~/.local/share`,
+  `~/.local/state` and `~/.cache`. The `RUSTUDIO_*` overrides work the same.
+- An installed `RobloxStudio.app` (in /Applications or ~/Applications) is
+  used for Studio's content, so nothing is downloaded.
+- The session cookie is kept in the login Keychain; project folders' deleted
+  files go to the Finder Trash (Put Back works).
+- Shortcuts are Studio for Mac's: ⌘ where Studio on Windows has Ctrl, ⌥ for
+  Alt, and the delete key (Backspace) deletes the selection. Quit (⌘Q) asks
+  about unsaved changes like the window's close button.
+- Files open from Finder (double-click, Open With, dropping on the Dock icon)
+  when rustudio runs as an app.
+- Video needs Homebrew's libvpx (`brew install libvpx opus`), found in
+  /opt/homebrew/lib or /usr/local/lib.
+- Gamepads aren't read yet (Linux reads /dev/input).
+
+`tools/macos/bundle.sh [--universal]` builds `target/macos/rustudio.app` and
+a zip of it (ad-hoc signed, not notarized); CI builds the universal one.
 
 ## Layout of the code
 

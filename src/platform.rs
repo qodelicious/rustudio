@@ -87,6 +87,22 @@ pub fn installed_studio() -> Option<PathBuf> {
         .find(|r| r.join("ExtraContent/scripts/PlayerScripts").is_dir() && r.join("content").is_dir())
 }
 
+/// A data file that ships with rustudio (`api-dump.json`), wherever this
+/// build keeps it: next to the executable, in a macOS app bundle's
+/// `Contents/Resources`, in `../share/rustudio` (an install prefix), else the
+/// source tree it was built from (`cargo run`).
+pub fn resource(name: &str) -> PathBuf {
+    let exe_dir = std::env::current_exe().ok().and_then(|e| e.canonicalize().ok()).and_then(|e| e.parent().map(Path::to_path_buf));
+    if let Some(dir) = exe_dir {
+        for p in [dir.join(name), dir.join("../Resources").join(name), dir.join("../share/rustudio").join(name)] {
+            if p.is_file() {
+                return p;
+            }
+        }
+    }
+    Path::new(env!("CARGO_MANIFEST_DIR")).join(name)
+}
+
 /// This process's resident memory in bytes.
 pub fn resident_bytes() -> Option<u64> {
     #[cfg(target_os = "linux")]
@@ -215,6 +231,11 @@ mod tests {
             assert_eq!(base_in(h, Dir::State), h.join(".local/state"));
             assert_eq!(base_in(h, Dir::Cache), h.join(".cache"));
         }
+    }
+
+    #[test]
+    fn resources_found() {
+        assert!(resource("api-dump.json").is_file());
     }
 
     #[test]
