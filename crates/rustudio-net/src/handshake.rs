@@ -252,7 +252,12 @@ mod tests {
         assert_eq!(v, vec![0xfe, 0x03]);
         let mut v = vec![];
         put_varint(&mut v, zigzag(10000000001));
-        assert_eq!(v, vec![0xa6, 0x80, 0xbc, 0xe4, 0x58]);
+        // zigzag(10000000001) = 20000000002, LEB128. (The vector here was
+        // a6 80 bc e4 58, which is 23833018406 = zigzag(11916509203).)
+        assert_eq!(v, vec![0x82, 0x90, 0xdf, 0xc0, 0x4a]);
+        let mut o = 0;
+        assert_eq!(get_varint(&v, &mut o), Some(20000000002));
+        assert_eq!(o, v.len());
     }
 
     #[test]

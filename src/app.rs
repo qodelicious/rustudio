@@ -1252,6 +1252,11 @@ impl Editor {
             check(sc(Modifiers::COMMAND, Key::Num3), "tool_scale");
             check(sc(Modifiers::COMMAND, Key::Num4), "tool_rotate");
             check(sc(Modifiers::NONE, Key::Delete), "delete");
+            // A Mac keyboard's delete key is Backspace (Studio for Mac
+            // deletes with it too).
+            if cfg!(target_os = "macos") {
+                check(sc(Modifiers::NONE, Key::Backspace), "delete");
+            }
             check(sc(Modifiers::NONE, Key::F2), "rename");
             check(sc(Modifiers::NONE, Key::F), "focus");
             // egui turns Ctrl+C/X/V into clipboard events.

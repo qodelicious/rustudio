@@ -5,6 +5,8 @@ mod ribbon_quick;
 mod cmeta;
 mod studio_content;
 mod platform;
+#[cfg(target_os = "macos")]
+mod macos_menu;
 mod dtmeta;
 mod cloud_ui;
 mod join_ui;
@@ -786,11 +788,21 @@ fn main() -> eframe::Result<()> {
             },
             ..Default::default()
         },
+        // macOS: rustudio sets the app menu itself (macos_menu.rs).
+        #[cfg(target_os = "macos")]
+        event_loop_builder: Some(Box::new(|b| {
+            use winit::platform::macos::EventLoopBuilderExtMacOS;
+            b.with_default_menu(false);
+        })),
         ..Default::default()
     };
     eframe::run_native(
         "rustudio",
         options,
-        Box::new(move |cc| Ok(Box::new(app::RustudioApp::new(cc, open, harness, demo)))),
+        Box::new(move |cc| {
+            #[cfg(target_os = "macos")]
+            macos_menu::install();
+            Ok(Box::new(app::RustudioApp::new(cc, open, harness, demo)))
+        }),
     )
 }
