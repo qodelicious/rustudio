@@ -577,6 +577,24 @@ mod tests {
         doc.rename(a, "A2");
         st.write_back(&mut doc);
         assert!(dir.join("src/Server/A2.server.luau").is_file() && !dir.join("src/Server/A.server.luau").exists());
+        // A rename that only changes case → the file follows too, also on a
+        // case-insensitive disk (macOS, Windows), where the new name already
+        // "exists" because it is the old file.
+        let listed = |d: &str| -> Vec<String> {
+            let mut v: Vec<String> = std::fs::read_dir(dir.join(d))
+                .unwrap()
+                .flatten()
+                .map(|e| e.file_name().to_string_lossy().into_owned())
+                .collect();
+            v.sort();
+            v
+        };
+        doc.rename(a, "a2");
+        st.write_back(&mut doc);
+        let names = listed("src/Server");
+        assert!(names.contains(&"a2.server.luau".to_string()) && !names.contains(&"A2.server.luau".to_string()), "{names:?}");
+        doc.rename(a, "A2");
+        st.write_back(&mut doc);
         // A property → its .meta.json.
         doc.set_props("t", vec![(a, ustr("Disabled"), Variant::Bool(true))], None);
         st.write_back(&mut doc);

@@ -653,7 +653,9 @@ impl ProjectState {
             Origin::Dir { dir, .. } => (dir.clone(), dir.with_file_name(&safe)),
             _ => return,
         };
-        if from == to || to.exists() || !self.writable(&from) || !self.writable(&to.parent().unwrap_or(Path::new("/")).join("")) {
+        // A case-only rename finds `to` already there on a case-insensitive
+        // disk: it is the same file, and renaming it changes the case.
+        if from == to || (to.exists() && !crate::platform::same_file(&from, &to)) || !self.writable(&from) || !self.writable(&to.parent().unwrap_or(Path::new("/")).join("")) {
             return;
         }
         if std::fs::rename(&from, &to).is_err() {
