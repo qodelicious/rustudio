@@ -172,8 +172,7 @@ impl ProjectState {
     /// Whether a path is inside the project's mapped paths (or is one of its
     /// project files): the only places rustudio writes.
     pub fn writable(&self, p: &Path) -> bool {
-        p == self.file
-            || (project::within(&self.root, p) && self.mapped.iter().any(|m| p.starts_with(m)))
+        project::within(&self.root, p) && (p == self.file || self.mapped.iter().any(|m| p.starts_with(m)))
     }
 
     /// Puts a snapshot under `parent`, replacing a same-named child the place
@@ -649,6 +648,20 @@ mod tests {
         assert!(!st.writable(&secret) && !st.writable(&base.join("new.txt")));
         assert!(!st.writable(&dir.join("src/inner.txt")) && !st.writable(&dir.join("up/outside.txt")));
         assert!(st.writable(&st.root.join("src/New.luau")));
+        assert!(!project::within(&dir, &dir.join("src/../../outside.txt")));
+        #[cfg(unix)]
+        {
+            let _ = std::os::unix::fs::symlink(base.join("gone.txt"), dir.join("src/Dangling.luau"));
+            assert!(!st.writable(&st.root.join("src/Dangling.luau")));
+            // The filesystem follows deep/ before `..`: base/outside.txt.
+            let _ = std::fs::create_dir_all(base.join("deep"));
+            let _ = std::os::unix::fs::symlink(base.join("deep"), dir.join("deep"));
+            assert!(!project::within(&dir, &dir.join("deep/../outside.txt")));
+            assert!(!project::within(&dir, &dir.join("link.txt/../x")));
+            std::fs::remove_file(&st.file).unwrap();
+            std::os::unix::fs::symlink(&secret, &st.file).unwrap();
+            assert!(!st.writable(&st.file));
+        }
         let _ = std::fs::remove_dir_all(&base);
     }
 }

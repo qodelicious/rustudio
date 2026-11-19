@@ -644,25 +644,31 @@ pub fn clean(p: &Path) -> PathBuf {
     out
 }
 
-/// Whether `p` stays inside `root` once `..` and symlinks are resolved. A
-/// path that doesn't exist yet is judged by its nearest existing ancestor.
-/// Project files are untrusted: their `$path`s and symlinks must not reach
-/// the rest of the disk.
+/// Whether `p` stays inside `root` as the filesystem resolves it (symlinks
+/// before `..`). A path that doesn't exist yet is judged by its nearest
+/// existing ancestor; a dangling symlink, or `..` after a missing part, is
+/// outside. Project files are untrusted: their `$path`s and symlinks must
+/// not reach the rest of the disk.
 pub fn within(root: &Path, p: &Path) -> bool {
+    use std::path::Component;
     let root = std::fs::canonicalize(root).unwrap_or_else(|_| clean(root));
-    let p = clean(p);
-    let mut probe = p.as_path();
+    let mut probe = p;
     let mut rest = Vec::new();
     loop {
-        if let Ok(c) = std::fs::canonicalize(probe) {
-            return rest.iter().rev().fold(c, |a, n| a.join(n)).starts_with(&root);
+        if std::fs::symlink_metadata(probe).is_ok() {
+            return match std::fs::canonicalize(probe) {
+                Ok(c) => rest.iter().rev().fold(c, |a, n| a.join(n)).starts_with(&root),
+                Err(_) => false,
+            };
         }
-        match (probe.parent(), probe.file_name()) {
-            (Some(up), Some(n)) => {
+        match (probe.parent(), probe.components().next_back()) {
+            (Some(up), Some(Component::Normal(n))) => {
                 rest.push(n);
                 probe = up;
             }
-            _ => return p.starts_with(&root),
+            (Some(up), Some(Component::CurDir)) => probe = up,
+            (_, Some(Component::ParentDir)) => return false,
+            _ => return clean(p).starts_with(&root),
         }
     }
 }
